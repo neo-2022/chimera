@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.10"
+VERSION="0.1.11"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.10.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.11.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -34,7 +34,33 @@ ensure_path_hint() {
   fi
 }
 
+latest_main_sha() {
+  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+    curl -fsSL "https://api.github.com/repos/neo-2022/chimera/commits/main" \
+    | sed -n 's/^[[:space:]]*"sha":[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' \
+    | head -n1
+}
+
+refresh_bootstrap_if_stale() {
+  [[ "${CHIMERA_BOOTSTRAP_REFRESHED:-0}" == "1" ]] && return 0
+  local sha="" tmp_script="" remote_version=""
+  sha="$(latest_main_sha || true)"
+  [[ -n "$sha" ]] || return 0
+  tmp_script="$(mktemp)"
+  trap 'rm -f "$tmp_script"' RETURN
+  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+    curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/${sha}/chimera.sh" -o "$tmp_script" || return 0
+  remote_version="$(sed -n 's/^VERSION=\"\([0-9][0-9.]*\)\"/\1/p' "$tmp_script" | head -n1)"
+  [[ -n "$remote_version" ]] || return 0
+  if [[ "$remote_version" != "$VERSION" ]]; then
+    echo "bootstrap_refresh=upgrading current=$VERSION latest=$remote_version sha=$sha"
+    CHIMERA_BOOTSTRAP_REFRESHED=1 bash "$tmp_script" -install
+    exit $?
+  fi
+}
+
 install_core() {
+  refresh_bootstrap_if_stale
   need_cmd curl
   need_cmd tar
   mkdir -p "$APP_DIR" "$BIN_DIR"
