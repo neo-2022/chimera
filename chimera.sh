@@ -64,11 +64,15 @@ install_core() {
 
 forward_or_fail() {
   local action="$1"
-  if [[ ! -x "$LOCAL_CMD" ]]; then
-    echo "error: CHIMERA is not installed. Run: chimera.sh -install" >&2
-    exit 1
+  local runtime_cmd="${APP_DIR}/scripts/chimera.sh"
+  if [[ -x "$runtime_cmd" ]]; then
+    exec "$runtime_cmd" "$action"
   fi
-  exec "$LOCAL_CMD" "$action"
+  if [[ -x "$LOCAL_CMD" ]]; then
+    exec "$LOCAL_CMD" "$action"
+  fi
+  echo "error: CHIMERA is not installed. Run: chimera.sh -install" >&2
+  exit 1
 }
 
 main() {
