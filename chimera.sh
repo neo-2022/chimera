@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.1.1"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
@@ -38,6 +38,7 @@ install_core() {
   need_cmd curl
   need_cmd tar
   mkdir -p "$APP_DIR" "$BIN_DIR"
+  echo "bootstrap_version=${VERSION}"
 
   tmp_dir="$(mktemp -d)"
   trap 'rm -rf "$tmp_dir"' EXIT

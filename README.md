@@ -6,7 +6,7 @@ No internal project sources are included.
 ## One-line install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh | bash -s -- -install
+curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh?ts=$(date +%s)" | bash -s -- -install
 ```
 
 ## After install
