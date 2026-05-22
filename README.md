@@ -14,4 +14,6 @@ curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh?t
 ```bash
 chimera.sh -start
 chimera.sh -status
+chimera.sh -stop
+chimera.sh -uninstall
 ```
