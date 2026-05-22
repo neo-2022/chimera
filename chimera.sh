@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.2"
+VERSION="0.1.3"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.2.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.3.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -53,7 +53,7 @@ install_core() {
     exit 1
   fi
 
-  bash "$APP_DIR/scripts/install_desktop_control.sh"
+  CHIMERA_RELEASE_VERSION="$VERSION" bash "$APP_DIR/scripts/install_desktop_control.sh"
 
   ln -sfn "$APP_DIR/scripts/chimera.sh" "$LOCAL_CMD"
   chmod +x "$APP_DIR/scripts/chimera.sh" "$APP_DIR/scripts/chimera-sh"
