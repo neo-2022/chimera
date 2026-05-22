@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.9"
+VERSION="0.1.10"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.9.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.10.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -43,8 +43,12 @@ install_core() {
   tmp_dir="$(mktemp -d)"
   trap 'rm -rf "$tmp_dir"' EXIT
 
-  echo "download_url=${ARCHIVE_URL}"
-  curl -fsSL "$ARCHIVE_URL" -o "$tmp_dir/chimera-pq.tar.gz"
+  local download_url="$ARCHIVE_URL"
+  if [[ "$download_url" == *"raw.githubusercontent.com"* ]] && [[ "$download_url" != *"?"* ]]; then
+    download_url="${download_url}?ts=$(date +%s)"
+  fi
+  echo "download_url=${download_url}"
+  curl -fsSL "$download_url" -o "$tmp_dir/chimera-pq.tar.gz"
   rm -rf "$APP_DIR"/*
   tar -xzf "$tmp_dir/chimera-pq.tar.gz" -C "$APP_DIR" --strip-components=1
 
