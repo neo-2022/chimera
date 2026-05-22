@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="0.1.0"
+APP_DIR="${HOME}/.local/share/chimera-pq"
+BIN_DIR="${HOME}/.local/bin"
+LOCAL_CMD="${BIN_DIR}/chimera.sh"
+ARCHIVE_URL_DEFAULT="https://example.com/chimera-pq-latest.tar.gz"
+ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
+
+usage() {
+  cat <<USAGE
+Usage:
+  chimera.sh -install
+  chimera.sh -start
+  chimera.sh -stop
+  chimera.sh -status
+  chimera.sh -restart
+  chimera.sh -uninstall
+  chimera.sh -version
+USAGE
+}
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "error: missing command: $1" >&2
+    exit 1
+  }
+}
+
+ensure_path_hint() {
+  if ! echo ":$PATH:" | grep -q ":${BIN_DIR}:"; then
+    echo "hint: add to PATH: export PATH=\"${BIN_DIR}:\$PATH\""
+  fi
+}
+
+install_core() {
+  need_cmd curl
+  need_cmd tar
+  mkdir -p "$APP_DIR" "$BIN_DIR"
+
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "$tmp_dir"' EXIT
+
+  echo "download_url=${ARCHIVE_URL}"
+  curl -fsSL "$ARCHIVE_URL" -o "$tmp_dir/chimera-pq.tar.gz"
+  rm -rf "$APP_DIR"/*
+  tar -xzf "$tmp_dir/chimera-pq.tar.gz" -C "$APP_DIR" --strip-components=1
+
+  if [[ ! -x "$APP_DIR/scripts/install_desktop_control.sh" ]]; then
+    echo "error: install script not found in archive" >&2
+    exit 1
+  fi
+
+  bash "$APP_DIR/scripts/install_desktop_control.sh"
+
+  ln -sfn "$APP_DIR/scripts/chimera.sh" "$LOCAL_CMD"
+  chmod +x "$APP_DIR/scripts/chimera.sh" "$APP_DIR/scripts/chimera-sh"
+
+  echo "installed=ok"
+  echo "command=${LOCAL_CMD}"
+  ensure_path_hint
+}
+
+forward_or_fail() {
+  local action="$1"
+  if [[ ! -x "$LOCAL_CMD" ]]; then
+    echo "error: CHIMERA is not installed. Run: chimera.sh -install" >&2
+    exit 1
+  fi
+  exec "$LOCAL_CMD" "$action"
+}
+
+main() {
+  case "${1:-}" in
+    -install) install_core ;;
+    -start) forward_or_fail -start ;;
+    -stop) forward_or_fail -stop ;;
+    -status) forward_or_fail -status ;;
+    -restart) forward_or_fail -restart ;;
+    -uninstall) forward_or_fail -uninstall ;;
+    -version) echo "chimera-bootstrap ${VERSION}" ;;
+    -help|--help|help|"") usage ;;
+    *)
+      echo "error: unknown option: ${1}" >&2
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
