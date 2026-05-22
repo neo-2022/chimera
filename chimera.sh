@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.12"
+VERSION="0.1.13"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.12.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.13.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -82,6 +82,26 @@ install_core() {
   fi
   echo "download_url=${download_url}"
   curl -fsSL "$download_url" -o "$tmp_dir/chimera-pq.tar.gz"
+
+  local checksum_url=""
+  checksum_url="${ARCHIVE_URL%.tar.gz}.sha256"
+  if [[ "$checksum_url" == *"raw.githubusercontent.com"* ]] && [[ "$checksum_url" != *"?"* ]]; then
+    checksum_url="${checksum_url}?ts=$(date +%s)"
+  fi
+  if env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      curl -fsSL "$checksum_url" -o "$tmp_dir/chimera-pq.tar.gz.sha256" 2>/dev/null; then
+    if command -v sha256sum >/dev/null 2>&1; then
+      local expected actual
+      expected="$(awk '{print $1}' "$tmp_dir/chimera-pq.tar.gz.sha256" | tr -d '[:space:]')"
+      actual="$(sha256sum "$tmp_dir/chimera-pq.tar.gz" | awk '{print $1}')"
+      if [[ -n "$expected" && "$expected" != "$actual" ]]; then
+        echo "error: archive checksum mismatch" >&2
+        echo "expected=$expected" >&2
+        echo "actual=$actual" >&2
+        exit 1
+      fi
+    fi
+  fi
   rm -rf "$APP_DIR"/*
   tar -xzf "$tmp_dir/chimera-pq.tar.gz" -C "$APP_DIR" --strip-components=1
 
