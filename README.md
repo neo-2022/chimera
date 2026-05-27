@@ -5,13 +5,13 @@ No internal project sources are included.
 
 Current release:
 
-- `chimera.sh` bootstrap version `0.1.23`
-- package: `chimera-pq-linux-x86_64-0.1.23.tar.gz`
+- `chimera.sh` bootstrap version `0.1.24`
+- package: `chimera-pq-linux-x86_64-0.1.24.tar.gz`
 
 ## One-line install
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh?ts=$(date +%s)" | bash -s -- -install
+curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh?ts=$(date +%s)" | bash -s -- -install --vps-endpoint host:port
 ```
 
 ## After install

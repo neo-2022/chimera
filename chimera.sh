@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.23"
+VERSION="0.1.24"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.23.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.24.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
   cat <<USAGE
 Usage:
-  chimera.sh -install
+  chimera.sh -install [--vps-endpoint host:port]
   chimera.sh -start
   chimera.sh -stop
   chimera.sh -status
@@ -92,6 +92,34 @@ refresh_bootstrap_if_stale() {
 }
 
 install_core() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --vps-endpoint|--client-endpoint|--carrier-addr)
+        shift
+        if [[ $# -eq 0 ]]; then
+          echo "error: missing value for endpoint option" >&2
+          exit 2
+        fi
+        export CHIMERA_VPS_ENDPOINT="$1"
+        ;;
+      --vps-endpoint=*|--client-endpoint=*|--carrier-addr=*)
+        export CHIMERA_VPS_ENDPOINT="${1#*=}"
+        ;;
+      --)
+        shift
+        if [[ $# -gt 0 ]]; then
+          echo "error: unexpected extra install arguments: $*" >&2
+          exit 2
+        fi
+        break
+        ;;
+      *)
+        echo "error: unknown install option: $1" >&2
+        exit 2
+        ;;
+    esac
+    shift || true
+  done
   refresh_bootstrap_if_stale
   need_cmd tar
   mkdir -p "$APP_DIR" "$BIN_DIR"
@@ -158,7 +186,7 @@ forward_or_fail() {
 
 main() {
   case "${1:-}" in
-    -install) install_core ;;
+    -install) install_core "${@:2}" ;;
     -start) forward_or_fail -start ;;
     -stop) forward_or_fail -stop ;;
     -status) forward_or_fail -status ;;
