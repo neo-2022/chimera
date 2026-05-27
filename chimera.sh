@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.20"
+VERSION="0.1.21"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.20.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.21.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -28,6 +28,71 @@ need_cmd() {
   }
 }
 
+fetch_url_to_stdout() {
+  local url="${1:?url_required}"
+  if command -v python3 >/dev/null 2>&1; then
+    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      python3 - "$url" <<'PY'
+import sys
+import urllib.request
+
+url = sys.argv[1]
+with urllib.request.urlopen(url, timeout=30) as resp:
+    while True:
+        chunk = resp.read(1024 * 1024)
+        if not chunk:
+            break
+        sys.stdout.buffer.write(chunk)
+PY
+    return 0
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      curl -fsSL "$url"
+    return $?
+  fi
+  if command -v wget >/dev/null 2>&1; then
+    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      wget -qO- "$url"
+    return $?
+  fi
+  echo "error: missing downloader: python3, curl, or wget" >&2
+  return 1
+}
+
+download_url_to_file() {
+  local url="${1:?url_required}"
+  local dest="${2:?dest_required}"
+  if command -v python3 >/dev/null 2>&1; then
+    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      python3 - "$url" "$dest" <<'PY'
+import sys
+import urllib.request
+
+url, dest = sys.argv[1], sys.argv[2]
+with urllib.request.urlopen(url, timeout=30) as resp, open(dest, "wb") as out:
+    while True:
+        chunk = resp.read(1024 * 1024)
+        if not chunk:
+            break
+        out.write(chunk)
+PY
+    return 0
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      curl -fsSL "$url" -o "$dest"
+    return $?
+  fi
+  if command -v wget >/dev/null 2>&1; then
+    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      wget -qO "$dest" "$url"
+    return $?
+  fi
+  echo "error: missing downloader: python3, curl, or wget" >&2
+  return 1
+}
+
 ensure_path_hint() {
   if ! echo ":$PATH:" | grep -q ":${BIN_DIR}:"; then
     echo "hint: add to PATH: export PATH=\"${BIN_DIR}:\$PATH\""
@@ -35,8 +100,7 @@ ensure_path_hint() {
 }
 
 latest_main_sha() {
-  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-    curl -fsSL "https://api.github.com/repos/neo-2022/chimera/commits/main" \
+  fetch_url_to_stdout "https://api.github.com/repos/neo-2022/chimera/commits/main" \
     | sed -n 's/^[[:space:]]*"sha":[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' \
     | head -n1
 }
@@ -47,8 +111,7 @@ refresh_bootstrap_if_stale() {
   sha="$(latest_main_sha || true)"
   [[ -n "$sha" ]] || return 0
   tmp_script="$(mktemp)"
-  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-    curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/${sha}/chimera.sh" -o "$tmp_script" || {
+  download_url_to_file "https://raw.githubusercontent.com/neo-2022/chimera/${sha}/chimera.sh" "$tmp_script" || {
       rm -f "$tmp_script"
       return 0
     }
@@ -68,7 +131,6 @@ refresh_bootstrap_if_stale() {
 
 install_core() {
   refresh_bootstrap_if_stale
-  need_cmd curl
   need_cmd tar
   mkdir -p "$APP_DIR" "$BIN_DIR"
   echo "bootstrap_version=${VERSION}"
@@ -81,15 +143,14 @@ install_core() {
     download_url="${download_url}?ts=$(date +%s)"
   fi
   echo "download_url=${download_url}"
-  curl -fsSL "$download_url" -o "$tmp_dir/chimera-pq.tar.gz"
+  download_url_to_file "$download_url" "$tmp_dir/chimera-pq.tar.gz"
 
   local checksum_url=""
   checksum_url="${ARCHIVE_URL%.tar.gz}.sha256"
   if [[ "$checksum_url" == *"raw.githubusercontent.com"* ]] && [[ "$checksum_url" != *"?"* ]]; then
     checksum_url="${checksum_url}?ts=$(date +%s)"
   fi
-  if env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-      curl -fsSL "$checksum_url" -o "$tmp_dir/chimera-pq.tar.gz.sha256" 2>/dev/null; then
+  if download_url_to_file "$checksum_url" "$tmp_dir/chimera-pq.tar.gz.sha256" 2>/dev/null; then
     if command -v sha256sum >/dev/null 2>&1; then
       local expected actual
       expected="$(awk '{print $1}' "$tmp_dir/chimera-pq.tar.gz.sha256" | tr -d '[:space:]')"
