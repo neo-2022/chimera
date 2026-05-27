@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.55"
+VERSION="0.1.56"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
 RUNTIME_VERSION_FILE="${APP_DIR}/.chimera_release_version"
 RUNTIME_BUNDLE_SHA_FILE="${APP_DIR}/.chimera_release_bundle.sha256"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.55.tar.gz"
+INSTALL_NODE_ROLE_FILE="${APP_DIR}/.chimera_install_role"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.56.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 UPDATE_BOOTSTRAP_URL="${CHIMERA_UPDATE_BOOTSTRAP_URL:-https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh}"
 
@@ -86,6 +87,23 @@ read_local_runtime_bundle_sha() {
   echo ""
 }
 
+read_local_install_role() {
+  if [[ -f "$INSTALL_NODE_ROLE_FILE" ]]; then
+    tr -d '[:space:]' < "$INSTALL_NODE_ROLE_FILE"
+    return 0
+  fi
+  local env_file="${XDG_CONFIG_HOME:-$HOME/.config}/chimera/peer-egress.env"
+  if [[ -f "$env_file" ]]; then
+    local env_mode=""
+    env_mode="$(awk -F= '/^CHIMERA_PEER_EGRESS_MODE=/{print $2; exit}' "$env_file" 2>/dev/null | tr -d '[:space:]')"
+    case "$env_mode" in
+      vps) echo "server"; return 0 ;;
+      laptop|client) echo "client"; return 0 ;;
+    esac
+  fi
+  echo "${CHIMERA_INSTALL_NODE_ROLE:-client}"
+}
+
 parse_release_metadata() {
   local script_file="${1:?script_file_required}"
   local release_version archive_url
@@ -144,7 +162,9 @@ auto_update_bundle_if_needed() {
 
   if [[ "$local_version" != "$remote_version" || "$local_sha" != "$remote_sha" ]]; then
     echo "runtime_update=required current_version=$local_version latest_version=$remote_version current_sha=${local_sha:-none} latest_sha=$remote_sha"
-    CHIMERA_BOOTSTRAP_REFRESHED=1 bash "$tmp_script" -install
+    local install_role
+    install_role="$(read_local_install_role)"
+    CHIMERA_BOOTSTRAP_REFRESHED=1 CHIMERA_INSTALL_NODE_ROLE="$install_role" bash "$tmp_script" -install
     rm -f "$tmp_script"
     exec "$0" "$@"
   fi
