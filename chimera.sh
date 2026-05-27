@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.21"
+VERSION="0.1.22"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.21.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.22.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -28,56 +28,13 @@ need_cmd() {
   }
 }
 
-fetch_url_to_stdout() {
-  local url="${1:?url_required}"
-  if command -v python3 >/dev/null 2>&1; then
-    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-      python3 - "$url" <<'PY'
-import sys
-import urllib.request
-
-url = sys.argv[1]
-with urllib.request.urlopen(url, timeout=30) as resp:
-    while True:
-        chunk = resp.read(1024 * 1024)
-        if not chunk:
-            break
-        sys.stdout.buffer.write(chunk)
-PY
-    return 0
-  fi
-  if command -v curl >/dev/null 2>&1; then
-    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-      curl -fsSL "$url"
-    return $?
-  fi
-  if command -v wget >/dev/null 2>&1; then
-    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-      wget -qO- "$url"
-    return $?
-  fi
-  echo "error: missing downloader: python3, curl, or wget" >&2
-  return 1
-}
-
 download_url_to_file() {
   local url="${1:?url_required}"
   local dest="${2:?dest_required}"
-  if command -v python3 >/dev/null 2>&1; then
-    env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-      python3 - "$url" "$dest" <<'PY'
-import sys
-import urllib.request
-
-url, dest = sys.argv[1], sys.argv[2]
-with urllib.request.urlopen(url, timeout=30) as resp, open(dest, "wb") as out:
-    while True:
-        chunk = resp.read(1024 * 1024)
-        if not chunk:
-            break
-        out.write(chunk)
-PY
-    return 0
+  local bootstrap_bin="${CHIMERA_BOOTSTRAP_BIN:-${APP_DIR}/bin/chimera-bootstrap}"
+  if [[ -x "$bootstrap_bin" ]]; then
+    "$bootstrap_bin" download --url "$url" --output "$dest"
+    return $?
   fi
   if command -v curl >/dev/null 2>&1; then
     env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
@@ -89,7 +46,7 @@ PY
       wget -qO "$dest" "$url"
     return $?
   fi
-  echo "error: missing downloader: python3, curl, or wget" >&2
+  echo "error: missing downloader: Rust bootstrap helper, curl, or wget" >&2
   return 1
 }
 
@@ -100,9 +57,14 @@ ensure_path_hint() {
 }
 
 latest_main_sha() {
-  fetch_url_to_stdout "https://api.github.com/repos/neo-2022/chimera/commits/main" \
-    | sed -n 's/^[[:space:]]*"sha":[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' \
-    | head -n1
+  local tmp_file
+  tmp_file="$(mktemp)"
+  download_url_to_file "https://api.github.com/repos/neo-2022/chimera/commits/main" "$tmp_file" || {
+    rm -f "$tmp_file"
+    return 1
+  }
+  sed -n 's/^[[:space:]]*"sha":[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' "$tmp_file" | head -n1
+  rm -f "$tmp_file"
 }
 
 refresh_bootstrap_if_stale() {
