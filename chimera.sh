@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.40"
+VERSION="0.1.41"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.40.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.41.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 
 usage() {
@@ -77,7 +77,7 @@ refresh_bootstrap_if_stale() {
       rm -f "$tmp_script"
       return 0
     }
-  remote_version="$(sed -n 's/^VERSION=\"\([0-9][0-9.]*\)\"/\1/p' "$tmp_script" | head -n1)"
+  remote_version="$(grep -m1 '^VERSION=\"' "$tmp_script" | cut -d'\"' -f2 | tr -d '[:space:]')"
   if [[ -z "$remote_version" ]]; then
     rm -f "$tmp_script"
     return 0
