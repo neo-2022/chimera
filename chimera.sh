@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.65"
+VERSION="0.1.66"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
 RUNTIME_VERSION_FILE="${APP_DIR}/.chimera_release_version"
 RUNTIME_BUNDLE_SHA_FILE="${APP_DIR}/.chimera_release_bundle.sha256"
 INSTALL_NODE_ROLE_FILE="${APP_DIR}/.chimera_install_role"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.65.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.66.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 UPDATE_BOOTSTRAP_URL="${CHIMERA_UPDATE_BOOTSTRAP_URL:-https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh}"
 
@@ -116,7 +116,7 @@ parse_release_metadata() {
 remote_archive_sha256() {
   local archive_url="${1:?archive_url_required}"
   local checksum_url tmp_checksum expected
-  checksum_url="${archive_url%.tar.gz}.sha256"
+  checksum_url="${archive_url}.sha256"
   if [[ "$checksum_url" == *"raw.githubusercontent.com"* ]] && [[ "$checksum_url" != *"?"* ]]; then
     checksum_url="${checksum_url}?ts=$(date +%s)"
   fi
@@ -249,7 +249,7 @@ install_core() {
   download_url_to_file "$download_url" "$tmp_dir/chimera-pq.tar.gz"
 
   local checksum_url=""
-  checksum_url="${ARCHIVE_URL%.tar.gz}.sha256"
+  checksum_url="${ARCHIVE_URL}.sha256"
   if [[ "$checksum_url" == *"raw.githubusercontent.com"* ]] && [[ "$checksum_url" != *"?"* ]]; then
     checksum_url="${checksum_url}?ts=$(date +%s)"
   fi
