@@ -5,8 +5,8 @@ No internal project sources are included.
 
 Current release:
 
-- `chimera.sh` bootstrap version `0.1.67`
-- package: `chimera-pq-linux-x86_64-0.1.67.tar.gz`
+- `chimera.sh` bootstrap version `0.1.68`
+- package: `chimera-pq-linux-x86_64-0.1.68.tar.gz`
 
 ## One-line install
 
