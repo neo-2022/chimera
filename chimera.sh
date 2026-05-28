@@ -35,11 +35,6 @@ need_cmd() {
 download_url_to_file() {
   local url="${1:?url_required}"
   local dest="${2:?dest_required}"
-  local bootstrap_bin="${CHIMERA_BOOTSTRAP_BIN:-${APP_DIR}/bin/chimera-bootstrap}"
-  if [[ -x "$bootstrap_bin" ]]; then
-    "$bootstrap_bin" download --url "$url" --output "$dest"
-    return $?
-  fi
   if command -v curl >/dev/null 2>&1; then
     env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
       curl -fsSL "$url" -o "$dest"
@@ -50,7 +45,12 @@ download_url_to_file() {
       wget -qO "$dest" "$url"
     return $?
   fi
-  echo "error: missing downloader: Rust bootstrap helper, curl, or wget" >&2
+  local bootstrap_bin="${CHIMERA_BOOTSTRAP_BIN:-${APP_DIR}/bin/chimera-bootstrap}"
+  if [[ -x "$bootstrap_bin" ]]; then
+    "$bootstrap_bin" download --url "$url" --output "$dest"
+    return $?
+  fi
+  echo "error: missing downloader: curl, wget, or Rust bootstrap helper" >&2
   return 1
 }
 
