@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="0.1.59"
+VERSION="0.1.60"
 APP_DIR="${HOME}/.local/share/chimera-pq"
 BIN_DIR="${HOME}/.local/bin"
 LOCAL_CMD="${BIN_DIR}/chimera.sh"
 RUNTIME_VERSION_FILE="${APP_DIR}/.chimera_release_version"
 RUNTIME_BUNDLE_SHA_FILE="${APP_DIR}/.chimera_release_bundle.sha256"
 INSTALL_NODE_ROLE_FILE="${APP_DIR}/.chimera_install_role"
-ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.59.tar.gz"
+ARCHIVE_URL_DEFAULT="https://raw.githubusercontent.com/neo-2022/chimera/main/chimera-pq-linux-x86_64-0.1.60.tar.gz"
 ARCHIVE_URL="${CHIMERA_PQ_ARCHIVE_URL:-$ARCHIVE_URL_DEFAULT}"
 UPDATE_BOOTSTRAP_URL="${CHIMERA_UPDATE_BOOTSTRAP_URL:-https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh}"
 
@@ -135,6 +135,10 @@ auto_update_bundle_if_needed() {
   local local_version remote_version local_sha remote_sha tmp_script parsed_version parsed_archive_url
   local_version="$(read_local_runtime_version)"
   local_sha="$(read_local_runtime_bundle_sha)"
+
+  if [[ -z "$local_version" || "$local_version" == "0.0.0" ]]; then
+    return 0
+  fi
 
   tmp_script="$(mktemp)"
   if ! download_url_to_file "${UPDATE_BOOTSTRAP_URL}?ts=$(date +%s)" "$tmp_script" 2>/dev/null; then
