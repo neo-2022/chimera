@@ -1,17 +1,18 @@
-# CHIMERA Bootstrap (Public Install Repo)
+# CHIMERA Bootstrap (Legacy Public Install Repo)
 
-This repo contains only bootstrap installer files.
-No internal project sources are included.
+This repo is retained for bootstrap history.
+The current public install/update entry point is the `chimera-pq` release
+bootstrap.
 
-Current release:
+Current install source:
 
-- `chimera.sh` bootstrap version `0.1.68`
-- package: `chimera-pq-linux-x86_64-0.1.68.tar.gz`
+- `chimera.sh` bootstrap from `chimera-pq` GitHub Release/Latest
+- package: `chimera-pq-release.tar.gz`
 
 ## One-line install
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/neo-2022/chimera/main/chimera.sh?ts=$(date +%s)" | bash -s -- -install
+bash -o pipefail -c 'curl --disable -fsSL --retry 3 --connect-timeout 10 --max-time 60 https://github.com/neo-2022/chimera-pq/releases/latest/download/chimera.sh | bash -s -- -install'
 ```
 
 ## After install
